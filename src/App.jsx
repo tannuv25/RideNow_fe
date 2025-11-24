@@ -11,6 +11,9 @@ import FeaturesPage from './pages/FeaturesPage'
 import SignupPage from './pages/auth/SignupPage'
 import LoginPage from './pages/auth/LoginPage'
 import ServicesPage from './pages/ServicesPage'
+import UserCompleteProfile from './pages/auth/UserCompleteProfile'
+import CaptainProfile from './pages/auth/captain/CaptainProfile'
+import CaptainUploadDocs from './pages/auth/captain/CaptainUploadDocs'
 // import ProfilePage from './pages/ProfilePage'
 // import MyappointmentPage from './pages/MyappointmentPage'
 
@@ -34,6 +37,10 @@ function App() {
 
         <Route path='/login' element = {<LoginPage/>}/>
         <Route path='/signup' element = {<SignupPage/>}/> 
+        <Route path="/user/complete-profile" element={<UserCompleteProfile />} />
+        <Route path="/captain/profile" element={<CaptainProfile/>} />
+        <Route path="/captain/documents" element={<CaptainUploadDocs/>} />
+        
 
       </Routes>
     </BrowserRouter>
