@@ -14,6 +14,7 @@ import ServicesPage from './pages/ServicesPage'
 import UserCompleteProfile from './pages/auth/UserCompleteProfile'
 import CaptainProfile from './pages/auth/captain/CaptainProfile'
 import CaptainUploadDocs from './pages/auth/captain/CaptainUploadDocs'
+import CaptainVehicle from './pages/auth/captain/CaptainVehicle'
 // import ProfilePage from './pages/ProfilePage'
 // import MyappointmentPage from './pages/MyappointmentPage'
 
@@ -40,6 +41,7 @@ function App() {
         <Route path="/user/complete-profile" element={<UserCompleteProfile />} />
         <Route path="/captain/profile" element={<CaptainProfile/>} />
         <Route path="/captain/documents" element={<CaptainUploadDocs/>} />
+        <Route path="/captain/vehicle" element={<CaptainVehicle/>} />
         
 
       </Routes>
