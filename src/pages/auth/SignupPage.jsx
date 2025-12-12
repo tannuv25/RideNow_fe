@@ -1,177 +1,161 @@
 import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Swal from "sweetalert2";
+import { requestOtp, verifyOtp } from "../../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
   const [role, setRole] = useState("user");
-  const [otpSent, setOtpSent] = useState(false);
   const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  // ➤ Handle Phone Number Input
+  const { loading, isOtpSent } = useSelector((state) => state.auth);
+
+  // Phone input
   const handlePhoneInput = (e) => {
-    let value = e.target.value.replace(/\D/g, ""); // remove non-numbers
-
-    if (countryCode === "+91") {
-      value = value.slice(0, 10); // max 10 digits
-    }
-
+    let value = e.target.value.replace(/\D/g, "");
+    if (countryCode === "+91") value = value.slice(0, 10);
     setPhone(value);
   };
 
-  // ➤ Handle OTP Input
+  // OTP input
   const handleOtpInput = (e) => {
-    let value = e.target.value.replace(/\D/g, ""); // only numbers
-    value = value.slice(0, 6); // max 6 digits
+    let value = e.target.value.replace(/\D/g, "").slice(0, 6);
     setOtp(value);
   };
 
-  // ➤ Send OTP
-  const handleSendOtp = () => {
-    if (!phone || phone.length !== 10) {
-      alert("Please enter a valid 10-digit phone number");
+  // Send OTP
+  const handleSendOtp = async () => {
+    if (phone.length !== 10) {
+      Swal.fire("Invalid Number", "Phone must be 10 digits", "error");
       return;
     }
-    setOtpSent(true);
+
+    Swal.fire({ title: "Sending OTP...", showConfirmButton: false, didOpen: () => Swal.showLoading() });
+
+    const endpoint = role === "captain" ? "/captain/request-otp" : "/users/request-otp";
+
+    const res = await dispatch(
+      requestOtp({
+        phone,
+        country_code: countryCode,
+        role,
+        endpoint,
+      })
+    );
+
+    Swal.close();
+
+    if (res.meta.requestStatus === "fulfilled") {
+      Swal.fire("OTP sent!", "Check your phone.", "success");
+    } else {
+      Swal.fire("Error", res.payload?.message || "Failed to send OTP", "error");
+    }
   };
 
-  // ➤ Verify OTP
-  const handleVerifyOtp = () => {
-    if (!otp || otp.length !== 6) {
-      alert("OTP must be 6 digits");
+  // Verify OTP
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
+      Swal.fire("Invalid OTP", "OTP must be 6 digits", "error");
       return;
     }
 
-    if (role === "user") {
-      navigate("/user/complete-profile");
-    } else if (role === "captain") {
-      navigate("/captain/profile");
+    Swal.fire({ title: "Verifying OTP...", showConfirmButton: false, didOpen: () => Swal.showLoading() });
+
+    const endpoint = role === "captain" ? "/captain/verify-otp" : "/users/verify-otp";
+
+    const res = await dispatch(verifyOtp({ phone, otp, endpoint }));
+
+    Swal.close();
+
+    if (res.meta.requestStatus === "fulfilled") {
+      const token = res.payload.sessionkey;
+
+      // ⭐ Save token in localStorage
+      localStorage.setItem("sessionkey", token);
+
+      // ⭐ Save user role also
+      localStorage.setItem("role", role);
+
+      Swal.fire("Success!", "OTP Verified", "success");
+
+      // Redirect
+      if (role === "user") {
+        navigate("/user/complete-profile");
+      } else {
+        navigate("/captain/profile");
+      }
+    } else {
+      Swal.fire("Error", res.payload?.message || "Invalid OTP", "error");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-4">
       <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 border border-gray-200">
-        <h1 className="text-3xl font-bold text-center text-black mb-8">
-          Sign Up
-        </h1>
+        <h1 className="text-3xl font-bold text-center text-black mb-8">Sign Up</h1>
 
-        {/* Role Toggle */}
+        {/* Role toggle */}
         <div className="flex justify-center mb-8">
           <button
             onClick={() => setRole("user")}
-            className={`px-5 py-2 rounded-l-full font-semibold transition-all duration-300 ${
-              role === "user"
-                ? "bg-amber-500 text-white"
-                : "bg-gray-100 text-black hover:bg-gray-200"
-            }`}
+            className={`px-5 py-2 rounded-l-full ${role === "user" ? "bg-amber-500 text-white" : "bg-gray-100 text-black"}`}
           >
             Register as User
           </button>
 
           <button
             onClick={() => setRole("captain")}
-            className={`px-5 py-2 rounded-r-full font-semibold transition-all duration-300 ${
-              role === "captain"
-                ? "bg-amber-500 text-white"
-                : "bg-gray-100 text-black hover:bg-gray-200"
-            }`}
+            className={`px-5 py-2 rounded-r-full ${role === "captain" ? "bg-amber-500 text-white" : "bg-gray-100 text-black"}`}
           >
             Register as Captain
           </button>
         </div>
 
-        {/* Input Fields */}
         <form className="space-y-5">
           {/* Country Code */}
           <div>
-            <label className="text-sm font-semibold text-gray-700">
-              Country Code
-            </label>
-            <input
-              type="text"
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value)}
-              placeholder="+91"
-              className="w-full border rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
-            />
+            <label>Country Code</label>
+            <input type="text" value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="w-full border px-3 py-2" />
           </div>
 
-          {/* Phone Number */}
+          {/* Phone */}
           <div>
-            <label className="text-sm font-semibold text-gray-700">
-              Phone Number
-            </label>
+            <label>Phone</label>
             <input
               type="tel"
               value={phone}
               onChange={handlePhoneInput}
+              className="w-full border px-3 py-2"
               placeholder="Enter phone number"
-              className="w-full border rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
-            {countryCode === "+91" && phone.length > 0 && phone.length < 10 && (
-              <p className="text-red-500 text-xs mt-1">
-                Phone must be 10 digits.
-              </p>
-            )}
           </div>
 
           {/* Send OTP */}
-          {!otpSent && (
-            <button
-              type="button"
-              onClick={handleSendOtp}
-              className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-md mt-2 transition-all duration-300 cursor-pointer"
-            >
-              Send OTP
+          {!isOtpSent && (
+            <button className="w-full bg-amber-500 text-white py-2" type="button" onClick={handleSendOtp}>
+              {loading ? "Sending..." : "Send OTP"}
             </button>
           )}
 
-          {/* OTP Field */}
-          {otpSent && (
+          {/* OTP */}
+          {isOtpSent && (
             <>
               <div>
-                <label className="text-sm font-semibold text-gray-700">
-                  Enter OTP
-                </label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={handleOtpInput}
-                  placeholder="Enter 6-digit OTP"
-                  className="w-full border rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                />
-                {otp.length > 0 && otp.length < 6 && (
-                  <p className="text-red-500 text-xs mt-1">
-                    OTP must be 6 digits.
-                  </p>
-                )}
+                <label>OTP</label>
+                <input type="text" value={otp} onChange={handleOtpInput} className="w-full border px-3 py-2" placeholder="Enter OTP" />
               </div>
 
-              {/* Verify OTP */}
-              <button
-                type="button"
-                onClick={handleVerifyOtp}
-                className="w-full bg-black hover:bg-gray-900 text-white py-2 rounded-md mt-2 transition-all duration-300 cursor-pointer"
-              >
-                Verify OTP
+              <button className="w-full bg-black text-white py-2" type="button" onClick={handleVerifyOtp}>
+                {loading ? "Verifying..." : "Verify OTP"}
               </button>
             </>
           )}
         </form>
-
-        {/* Message / Info */}
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Already have an account?{" "}
-          <a
-            href="/login"
-            className="text-amber-500 font-semibold hover:underline"
-          >
-            Login here
-          </a>
-        </p>
       </div>
     </div>
   );
